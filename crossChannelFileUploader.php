@@ -1,4 +1,3 @@
-
 <?php
 
 function curlReq($url,$post){ //curl statement builder and runner
@@ -18,14 +17,17 @@ function curlReq($url,$post){ //curl statement builder and runner
 
 }
 
-function uploadFileToSlack($fileName){
-        $file = new CurlFile('_FILEDIR_/' . $fileName);
+function uploadFileToSlack($fileName,$fileType){
+//channel where to the message should be posted
+
+        $file = new CurlFile('/_COMPLETE_FILELOCATION_/' . $fileName);
         
         $post = array(
-                "token" => "xoxp-TOKEN",
+                "token" => "USER TOKEN xoxp-",
                 "file" => $file,
-                "channels" => "CHANNEL_to_which_file_will_be_uploaded",
+                "channels" => "CHANNEL_WHERE_TO_UPLOAD_THE_FILE",
                 "filename" => $fileName,
+		"filetype" => $fileType,
                 "title" => "Latest uploaded file"
         );
 
@@ -35,12 +37,12 @@ function uploadFileToSlack($fileName){
 }
 
 
-function sendMessToSlack(){
-
+function sendMessToSlack($mess){
+	//channel where to the message should be posted
         $post = array(
-                "token" => "xoxp-TOKEN",
-                "text" => "TEXT",
-                "channel" => "CHANNEL_to_post_message"
+                "token" => "USER TOKEN xoxp-",
+                "text" => $mess,
+                "channel" => "CHANNEL_TO_POST_MESS_IN"  
         );
 
         $url = 'https://slack.com/api/chat.postMessage';
@@ -49,9 +51,13 @@ function sendMessToSlack(){
 
 
 function downloadTempStore($url, $fileName){
+    //Dont forget to set the ownership of the folder to web 'sudo chown -R www-data: _FILELOCATION_/''
+
+
     //namesanitizer
-    
+    sendMessToSlack("url:" . $url);
     $str = $fileName;
+    //sendMessToSlack("filename: " . $str);
     $str = strip_tags($str); 
     $str = preg_replace('/[\r\n\t ]+/', ' ', $str);
     $str = preg_replace('/[\"\*\/\:\<\>\?\'\|]+/', ' ', $str);
@@ -63,7 +69,7 @@ function downloadTempStore($url, $fileName){
     $str = rawurlencode($str);
     $str = str_replace('%', '-', $str);
 
-$localFile = "_FILEDIR_/" . $str;
+$localFile = "/_COMPLETE_FILELOCATION_/" . $str;
 
 touch ($localFile);
 
@@ -73,8 +79,9 @@ curl_setopt($ch, CURLOPT_FILE, $fp);
 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); 
+//workspace oauth token!
 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                'Authorization: Bearer xoxp-TOKEN'
+                'Authorization: Bearer xoxp-WORKSPACE-OAUTH-TOKEN'
             )); 
 curl_exec($ch); 
 curl_close($ch); 
@@ -84,22 +91,27 @@ fclose($fp);
 
 
 function cleanUp($fileName){
-        unlink("_FILEDIR_/" . $fileName);
+        unlink("/_COMPLETE_FILELOCATION_/" . $fileName);
 }
 
 function getJSONtoLog($da){
         if (isset($da["type"])){
                 echo "fuckin eh";
-                file_put_contents('_FILEDIR_/_logfilename_.txt', print_r($da, true));
+                file_put_contents('/_COMPLETE_FILELOCATION_/log.txt', print_r($da, true));
         }else {echo "F*cked up!";}
 }
 
+
+//-- START -- //
+
 $da = json_decode(file_get_contents('php://input'), true);
+getJSONtoLog($da);
+
   if (isset($da["type"])){
-        if ($da["token"] === "SLACK_APP_TOKEN"){
-                if (($da["event"]["type"] === "message") && ($da["event"]["subtype"] === "file_share") && && ($da["event"]["channel"] === "CHANNEL_where_file_orginially_is_posted")){
-                        downloadTempStore($da["event"]["files"]["0"]["url_private_download"],$da["event"]["files"]["0"$
-                        uploadFileToSlack($da["event"]["files"]["0"]["name"]);
+        if ($da["token"] === "APPLICATION_VERIFICATION_TOKEN"){
+                if (($da["event"]["type"] === "message") && ($da["event"]["subtype"] === "file_share")  && ($da["event"]["channel"] === "CHANNEL_WHERE_ORIGINAL_FILE_POST_BEEN_MADE")){
+			downloadTempStore($da["event"]["files"]["0"]["url_private_download"],$da["event"]["files"]["0"]["name"]);
+			uploadFileToSlack($da["event"]["files"]["0"]["name"],$da["event"]["files"]["0"]["filetype"]);
                 }
         }
 
